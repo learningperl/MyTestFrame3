@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import requests, json
+import requests, json, traceback
 
 
 class HTTP:
@@ -24,23 +24,38 @@ class HTTP:
             d = self.__get_param(d)
             d = self.__get_data(d)
 
-        res = self.session.post(url, d, j)
+        # 如果请求https请求，报ssl错误，就添加verify=False参数
+        res = self.session.post(url, d, j, verify=False)
         self.result = res.content.decode(en)
-        self.jsonres = json.loads(self.result)
+        try:
+            self.jsonres = json.loads(self.result)
+        except Exception as e:
+            # 异常处理的时候，分析逻辑问题
+            self.jsonres = {}
 
     def addheader(self, key, value):
         value = self.__get_param(value)
         self.session.headers[key] = value
 
     def assertequals(self, key, value):
-        if str(self.jsonres[key]) == str(value):
+        res = str(self.result)
+        try:
+            res = str(self.jsonres[key])
+        except Exception as e:
+            pass
+
+        if res == str(value):
             print('PASS')
         else:
             print('FAIL')
 
     def savejson(self, key, p):
         # 将需要保存数据，保存为参数p的值
-        self.params[p] = self.jsonres[key]
+        try:
+            self.params[p] = self.jsonres[key]
+        except Exception as e:
+            print("error：保存参数失败！没有" + key + "这个键。")
+            print(traceback.format_exc())
 
     def __get_param(self, s):
         # 按规则获取关联的参数
@@ -57,10 +72,16 @@ class HTTP:
         param = {}
         p = s.split('&')
         # 获取键和值
+        # username=Roy&password
         for pp in p:
             # 分离键和值
             ppp = pp.split('=')
-            param[ppp[0]] = ppp[1]
+            # 异常处理
+            try:
+                param[ppp[0]] = ppp[1]
+            except Exception as e:
+                print('error：URL参数格式不标准！')
+                print(traceback.format_exc())
 
         # print(param)
         return param

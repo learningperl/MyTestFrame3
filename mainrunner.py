@@ -8,4 +8,5 @@
 """
 
 print('暂未实现自动化框架')
+from interface import test
 

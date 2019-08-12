@@ -21,6 +21,7 @@ class Mysql:
                 self.mysql_config[key] = config.config[key]
             except Exception as e:
                 logger.exception(e)
+
         # 把端口处理为整数
         try:
             self.mysql_config['mysqlport'] = int(self.mysql_config['mysqlport'])
@@ -69,6 +70,23 @@ class Mysql:
         for sql in self.__read_sql_file(path):
             cursor.execute(sql)
             connect.commit()
+
+        # cursor.execute('select * from userinfo;')
+        # # 表结构
+        # print(cursor.description)
+        # # 查询结果
+        # fet = cursor.fetchall()
+        # print(fet)
+        # # 转为列表
+        # search = []
+        # cols = []
+        # for line in fet:
+        #     for col in line:
+        #         cols.append(col)
+        #     search.append(cols)
+        #
+        # print(search)
+
         # 关闭游标和连接
         cursor.close()
         connect.close()
@@ -76,7 +94,7 @@ class Mysql:
 
 # 调试代码
 if __name__ == '__main__':
-    config.get_config('../lib/conf/conf.txt')
-    # logger.info(config.config)
+    config.get_config('../lib/conf.properties')
+    logger.info(config.config)
     mysql = Mysql()
-    mysql.init_mysql('C:\\Users\\Will\\Desktop\\userinfo.sql')
+    mysql.init_mysql('../lib/userinfo.sql')

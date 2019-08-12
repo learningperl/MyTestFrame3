@@ -77,7 +77,7 @@ class Res:
         if flag:
             status = "Pass"
 
-        # 计算通过率
+        # 计算通过率，百分率
         try:
             p = int(totalpass * 10000 / totalcount)
             passrate = p / 100
@@ -96,5 +96,5 @@ class Res:
 
 if __name__ == '__main__':
     res = Res()
-    r = res.get_res('../lib/results/result-HTTP接口用例.xls')
+    r = res.get_res('../lib/result-HTTP接口用例.xls')
     print(r)

@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
-import requests, json, traceback
+import requests, json,jsonpath
+from common import logger
+
 
 
 class HTTP:
@@ -12,6 +14,9 @@ class HTTP:
     def __init__(self, writer):
         requests.packages.urllib3.disable_warnings()
         self.session = requests.session()
+        self.session.headers['content-type'] = 'application/x-www-form-urlencoded'
+        self.session.headers[
+            'user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36'
         self.result = ''
         self.jsonres = {}
         # 用来保存关联数据的字段
@@ -30,7 +35,7 @@ class HTTP:
             self.writer.write(self.writer.row, 7,'PASS')
             self.writer.write(self.writer.row, 8, self.url)
         else:
-            print('error：url格式错误')
+            logger.error('url格式错误')
             self.writer.write(self.writer.row, 7, 'FAIL')
             self.writer.write(self.writer.row, 8, 'url格式错误')
 
@@ -54,16 +59,50 @@ class HTTP:
         # 如果请求https请求，报ssl错误，就添加verify=False参数
         res = self.session.post(url, d, j, verify=False)
         self.result = res.content.decode('utf8')
-        print(self.result)
+        logger.info(self.result)
         try:
-            self.jsonres = json.loads(self.result)
+            jsons = self.result
+            jsons = jsons[jsons.find('{'):jsons.rfind('}') + 1]
+            self.jsonres = json.loads(jsons)
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.jsonres))
         except Exception as e:
             # 异常处理的时候，分析逻辑问题
             self.jsonres = {}
-            self.writer.write(self.writer.row, 7, 'FAIL')
+            logger.exception(e)
+            self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.result))
+
+    def get(self, url, params=None):
+        """
+        发送post请求
+        :param url: url路径，可以是单纯的路径+全局的host。也可以是http/https开头的绝对路径
+        :param d: 标准url data传参
+        :param j: 传递json字符串的参数
+        :return: 无
+        """
+        if not (url.startswith('http') or url.startswith('https')):
+            url = self.url + '/' + url + "?" + params
+        else:
+            url = url + "?" + params
+
+        # 如果请求https请求，报ssl错误，就添加verify=False参数
+        res = self.session.get(url,verify=False)
+        self.result = res.content.decode('utf8')
+        logger.info(self.result)
+        try:
+            jsons = self.result
+            jsons = jsons[jsons.find('{'):jsons.rfind('}')+1]
+            self.jsonres = json.loads(jsons)
+            self.writer.write(self.writer.row, 7, 'PASS')
+            self.writer.write(self.writer.row, 8, str(jsons))
+        except Exception as e:
+            # 异常处理的时候，分析逻辑问题
+            self.jsonres = {}
+            logger.exception(e)
+            self.writer.write(self.writer.row, 7, 'PASS')
+            self.writer.write(self.writer.row, 8, str(self.result))
+
 
     def removeheader(self, key):
         """
@@ -76,7 +115,8 @@ class HTTP:
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.session.headers))
         except Exception as e:
-            print('没有' + key + '这个键的header存在')
+            logger.error('没有' + key + '这个键的header存在')
+            logger.exception(e)
             self.writer.write(self.writer.row, 7, 'FAIL')
             self.writer.write(self.writer.row, 8, str(self.session.headers))
 
@@ -92,7 +132,7 @@ class HTTP:
         self.writer.write(self.writer.row, 7, 'PASS')
         self.writer.write(self.writer.row, 8, str(self.session.headers))
 
-    def assertequals(self, key, value):
+    def assertequals(self, jpath, value):
         """
         断言json结果里面，某个键的值和value相等
         :param key: json结果的键
@@ -102,16 +142,16 @@ class HTTP:
         value = self.__get_param(value)
         res = str(self.result)
         try:
-            res = str(self.jsonres[key])
+            res = str(jsonpath.jsonpath(self.jsonres,jpath)[0])
         except Exception as e:
             pass
 
         if res == str(value):
-            print('PASS')
+            logger.info('PASS')
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, res)
         else:
-            print('FAIL')
+            logger.info('FAIL')
             self.writer.write(self.writer.row, 7, 'FAIL')
             self.writer.write(self.writer.row, 8, '实际：' + res +'  预期结果：' + value)
 
@@ -127,8 +167,8 @@ class HTTP:
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.params[p]))
         except Exception as e:
-            print("error：保存参数失败！没有" + key + "这个键。")
-            print(traceback.format_exc())
+            logger.error("保存参数失败！没有" + key + "这个键。")
+            logger.exception(e)
             self.writer.write(self.writer.row, 7, 'FAIL')
             self.writer.write(self.writer.row, 8, str(self.jsonres))
 
@@ -141,6 +181,8 @@ class HTTP:
         return s
 
     def __get_data(self, s):
+        # 默认是标准的url参数
+        flg = False
         # s = eval(s)
         # return s
         # 分离键值对
@@ -155,8 +197,12 @@ class HTTP:
             try:
                 param[ppp[0]] = ppp[1]
             except Exception as e:
-                print('error：URL参数格式不标准！')
-                print(traceback.format_exc())
+                flg = True
+                logger.error('URL参数格式不标准！')
+                logger.exception(e)
 
         # print(param)
-        return param
+        if flg:
+            return s
+        else:
+            return param

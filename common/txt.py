@@ -84,11 +84,11 @@ class Txt:
 # 调试
 if __name__ == '__main__':
     # 读取
-    reader = Txt('../lib/conf/conf.txt')
+    reader = Txt('../lib/conf.properties')
     t = reader.read()
     print(t)
 
     # 写入
-    writer = Txt('../lib/logs/all.log', t='w')
+    writer = Txt('../lib/conf.properties', t='w')
     writer.writeline('写入成功\n')
     writer.save_close()

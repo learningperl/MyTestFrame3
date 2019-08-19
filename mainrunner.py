@@ -1,10 +1,13 @@
 # coding:utf8
 from common.Excel import *
+from common.mysql import Mysql
 from interface.inter import *
+from web.Web import Browser
+from app.App import APP
 from common import logger, config
 from common.excelresult import Res
 from common.mail import Mail
-import inspect,jsonpath,datetime
+import inspect, datetime
 
 """
     这是整个自动化框架的主代码运行入口
@@ -56,16 +59,35 @@ def runcase(line, f):
 
 # 接口自动化运行
 reader = Reader()
-casename = "百度ip"
-reader.open_excel('./lib/'+casename+'.xls')
+casename = "APP"
+reader.open_excel('./lib/' + casename + '.xls')
 sheetname = reader.get_sheets()
 
+# 读取配置文件
+config.get_config('./lib/conf.properties')
+logger.info(config.config)
+
+# 数据库初始化
+mysql = Mysql()
+mysql.init_mysql('./lib/userinfo.sql')
+
 writer = Writer()
-writer.copy_open('./lib/'+casename+'.xls', './lib/result-'+casename+'.xls')
-http = HTTP(writer)
+writer.copy_open('./lib/' + casename + '.xls', './lib/result-' + casename + '.xls')
 
 writer.set_sheet(sheetname[0])
-writer.write(1,3,str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+writer.write(1, 3, str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+reader.readline()
+http = None
+casetype = reader.readline()[1]
+if casetype == 'HTTP':
+    http = HTTP(writer)
+if casetype == 'SOAP':
+    http = SOAP(writer)
+if casetype == 'WEB':
+    http = Browser(writer)
+if casetype == 'APP':
+    http = APP(writer)
 
 for sheet in sheetname:
     # 设置当前读取的sheet页面
@@ -75,20 +97,17 @@ for sheet in sheetname:
     for i in range(reader.rows):
         writer.row = i
         line = reader.readline()
+        print(line)
         runcase(line, http)
 
 writer.set_sheet(sheetname[0])
-writer.write(1,4,str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+writer.write(1, 4, str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 writer.save_close()
 
 # 解析结果，得到报告数据
 res = Res()
-r = res.get_res('./lib/result-'+casename+'.xls')
+r = res.get_res('./lib/result-' + casename + '.xls')
 logger.info(r)
-
-# 读取配置文件
-config.get_config('./lib/conf.properties')
-logger.info(config.config)
 
 # 修改邮件数据
 html = config.config['mailtxt']

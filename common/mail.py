@@ -55,15 +55,20 @@ class Mail:
 
 
         msg['Subject'] = Header(self.mail_info['mail_subject'], self.mail_info['mail_encoding'])
-        # msg['from'] = self.mail_info['from']
-        msg['from'] = 'William'
+        msg['from'] = self.mail_info['from']
+        # msg['from'] = 'William'
 
         logger.debug(self.mail_info)
         logger.debug(text)
         msg['to'] = ','.join(self.mail_info['to'])
-        msg['cc'] = ','.join(self.mail_info['cc'])
         receive = self.mail_info['to']
-        receive += self.mail_info['cc']
+        # 处理抄送列表为空的情况
+        if self.mail_info['cc'] is None or self.mail_info['cc'][0] == '':
+            # 没有抄送列表的时候，就不抄送
+            pass
+        else:
+            msg['cc'] = ','.join(self.mail_info['cc'])
+            receive += self.mail_info['cc']
 
         # 添加附件
         for i in range(len(self.mail_info['filepaths'])):

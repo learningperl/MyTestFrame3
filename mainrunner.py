@@ -59,7 +59,7 @@ def runcase(line, f):
 
 # 接口自动化运行
 reader = Reader()
-casename = "APP"
+casename = "HTTP接口用例"
 reader.open_excel('./lib/' + casename + '.xls')
 sheetname = reader.get_sheets()
 

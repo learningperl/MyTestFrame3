@@ -55,8 +55,11 @@ class Mail:
 
 
         msg['Subject'] = Header(self.mail_info['mail_subject'], self.mail_info['mail_encoding'])
-        msg['from'] = self.mail_info['from']
-        # msg['from'] = 'William'
+        # msg['from'] = self.mail_info['from']
+
+        h = Header('老will', 'utf-8')
+        h.append('<'+self.mail_info['from']+'>', 'utf-8')
+        msg["From"] = h
 
         logger.debug(self.mail_info)
         logger.debug(text)

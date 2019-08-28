@@ -59,7 +59,7 @@ def runcase(line, f):
 
 # 接口自动化运行
 reader = Reader()
-casename = "HTTP接口用例"
+casename = "Web"
 reader.open_excel('./lib/' + casename + '.xls')
 sheetname = reader.get_sheets()
 
@@ -97,7 +97,7 @@ for sheet in sheetname:
     for i in range(reader.rows):
         writer.row = i
         line = reader.readline()
-        print(line)
+        # print(line)
         runcase(line, http)
 
 writer.set_sheet(sheetname[0])

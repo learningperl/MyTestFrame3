@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import requests, json, jsonpath
+import requests, json, jsonpath,traceback
 from common import logger
 from suds.client import Client
 from suds.xsd.doctor import Import,ImportDoctor
@@ -240,6 +240,7 @@ class SOAP:
         self.client = Client(url,doctor=self.doctor)
         self.writer.write(self.writer.row, 7, 'PASS')
         self.writer.write(self.writer.row, 8, self.wsdl)
+        return True
 
     def adddoctor(self,s=None,x=None,n=None):
         imp = Import(s, location=x)
@@ -248,6 +249,7 @@ class SOAP:
         self.doctor = ImportDoctor(imp)
         self.writer.write(self.writer.row, 7, 'PASS')
         self.writer.write(self.writer.row, 8, '')
+        return True
 
     def callmethod(self, m, l=None):
         # 调用服务，并获得接口返回值
@@ -278,8 +280,11 @@ class SOAP:
             # 异常处理的时候，分析逻辑问题
             self.jsonres = {}
             logger.exception(e)
+            print(str(traceback.format_exc()))
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.result))
+
+        return True
 
     # 添加头
     def addheader(self, key, value):
@@ -288,12 +293,14 @@ class SOAP:
         self.client = Client(self.wsdl, headers=self.headers)
         self.writer.write(self.writer.row, 7, 'PASS')
         self.writer.write(self.writer.row, 8, str(self.result))
+        return True
 
     def removeheader(self, key):
         self.headers.pop(key)
         self.client = Client(self.wsdl, headers=self.headers)
         self.writer.write(self.writer.row, 7, 'PASS')
         self.writer.write(self.writer.row, 8, str(self.result))
+        return True
 
     def savejson(self, jpath, p):
         """
@@ -306,11 +313,13 @@ class SOAP:
             self.params[p] = str(jsonpath.jsonpath(self.jsonres, jpath)[0])
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.params[p]))
+            return True
         except Exception as e:
             logger.error("保存参数失败！没有" + jpath + "这个键。")
             logger.exception(e)
             self.writer.write(self.writer.row, 7, 'FAIL')
             self.writer.write(self.writer.row, 8, str(self.jsonres))
+            return False
 
     def assertequals(self, jpath, value):
         """
@@ -333,6 +342,7 @@ class SOAP:
             logger.info('PASS')
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, res)
+            return True
         else:
             logger.info('FAIL')
             self.writer.write(self.writer.row, 7, 'FAIL')
@@ -341,6 +351,7 @@ class SOAP:
             if value is None:
                 value = 'None'
             self.writer.write(self.writer.row, 8, '实际：' + res + '  预期结果：' + value)
+            return False
 
     def __get_param(self, s):
         # 按规则获取关联的参数

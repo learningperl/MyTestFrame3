@@ -51,13 +51,16 @@ class HTTP:
         if not (url.startswith('http') or url.startswith('https')):
             url = self.url + '/' + url
 
+        d = self.__get_param(d)
+
         if d is None or d == '':
             pass
         else:
-            d = self.__get_param(d)
-            d = self.__get_data(d)
+            if d.__contains__('='):
+                d = self.__get_data(d)
 
         # 如果请求https请求，报ssl错误，就添加verify=False参数
+        print(d)
         res = self.session.post(url, d, j, verify=False)
         self.result = res.content.decode('UTF-8')
         logger.info(self.result)
@@ -70,7 +73,7 @@ class HTTP:
         except Exception as e:
             # 异常处理的时候，分析逻辑问题
             self.jsonres = {}
-            logger.exception(e)
+            # logger.exception(e)
             self.writer.write(self.writer.row, 7, 'PASS')
             self.writer.write(self.writer.row, 8, str(self.result))
 
@@ -198,15 +201,7 @@ class HTTP:
         # 获取键和值
         # username=Roy&password
         for pp in p:
-            # 分离键和值
-            ppp = pp.split('=')
-            # 异常处理
-            try:
-                param[ppp[0]] = ppp[1]
-            except Exception as e:
-                flg = True
-                logger.error('URL参数格式不标准！')
-                logger.exception(e)
+            param[pp[0:pp.find('=')]] = pp[pp.find('=')+1:]
 
         # print(param)
         if flg:
